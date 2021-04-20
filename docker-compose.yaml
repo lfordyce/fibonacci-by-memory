@@ -1,0 +1,37 @@
+version: '3.7'
+
+services:
+  app:
+    image: fib_memo_api:latest
+    environment:
+      - DATABASE_URL=postgresql://postgres:changeme@psql_utxo:5432/postgres
+      - PORT=8000
+    ports:
+      - 8000:8000
+    networks:
+      - fibonacci_network
+    depends_on:
+      - psql_kv
+
+  psql_kv:
+    container_name: psql_kv
+    build:
+      context: psql
+      dockerfile: Dockerfile
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_PASSWORD=changeme
+      - POSTGRES_DB=postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data # persist data even if container shuts down
+    networks:
+      - fibonacci_network
+
+networks:
+  fibonacci_network:
+    external: false
+    name: fibonacci_network
+
+volumes:
+  postgres_data:
