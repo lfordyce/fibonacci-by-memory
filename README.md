@@ -35,6 +35,9 @@ fmt                            Run gofmt on all source files
 get                            Run go get for dependencies
 help                           - Show help message
 lint                           Run golint
+test-race                      Run tests with race detector
+test-short                     Run only short tests
+test-verbose                   Run tests in verbose mode with coverage reporting
 ```
 
 ### API:

@@ -12,7 +12,6 @@ import (
 	"time"
 )
 
-
 // LoggerOption is an abstraction for providing additional logging configuration options.
 type LoggerOption interface {
 	Apply(*Logger)

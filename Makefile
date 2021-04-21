@@ -46,6 +46,17 @@ $(BIN)/%: | $(BIN) ; $(info $(M) building $(PACKAGE)...)
 GOLINT = $(BIN)/golint
 $(BIN)/golint: PACKAGE=golang.org/x/lint/golint
 
+# Tests
+TEST_TARGETS := test-default test-short test-verbose test-race
+.PHONY: $(TEST_TARGETS) check test tests
+test-short:   ARGS=-short        ## Run only short tests
+test-verbose: ARGS=-v            ## Run tests in verbose mode with coverage reporting
+test-race:    ARGS=-race         ## Run tests with race detector
+$(TEST_TARGETS): NAME=$(MAKECMDGOALS:test-%=%)
+$(TEST_TARGETS): test
+check test tests: fmt ; $(info $(M) running $(NAME:%=% )tests...) @ ## Run tests
+	$Q $(GO) test $(ARGS) $(TESTPKGS)
+
 .PHONY: lint
 lint: | $(GOLINT) ; $(info $(M) running golint...) @ ## Run golint
 	$Q $(GOLINT) -set_exit_status $(PKGS)
