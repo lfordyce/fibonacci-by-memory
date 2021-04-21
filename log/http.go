@@ -7,6 +7,7 @@ import (
 	"time"
 )
 
+// LoggerMiddleware to be used as a chi router middleware for capturing log events of an http request.
 func (l Logger) LoggerMiddleware() func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {

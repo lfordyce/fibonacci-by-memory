@@ -15,12 +15,12 @@ import (
 )
 
 type config struct {
-	// Server connection address.
+	// Addr connection address.
 	// default value: 0.0.0.0:8000
 	Addr string
-	// PostgreSQL Connection URL.
+	// ConnectionURL PostgreSQL Connection URL.
 	ConnectionURL string
-	// Limits the number of open connections to the PostgreSQL server.
+	// MaxOpenConnections Limits the number of open connections to the PostgreSQL server.
 	// -1 for no limit. 0 will lead to the default value (100) being set.
 	// Optional (100 by default).
 	MaxOpenConnections int
@@ -34,6 +34,7 @@ func (cfg *config) cliFlags() []cli.Flag {
 	}
 }
 
+// Server type for the http.Server with logging
 type Server struct {
 	*http.Server
 	log.Logger
@@ -51,11 +52,17 @@ func newServer(addr string, h http.Handler, l log.Logger) Server {
 	return s
 }
 
+// FibServer abstraction for which the standard go http server library will satisfy.
 type FibServer interface {
+	// ListenAndServe listens on the TCP network address srv.Addr and then
+	// calls Serve to handle requests on incoming connections.
 	ListenAndServe() error
+	// Shutdown gracefully shuts down the server without interrupting any
+	// active connections.
 	Shutdown(context.Context) error
 }
 
+// Command is the command to start and active http server and connect to the PostgreSQL database.
 func Command(ac chan FibServer) *cli.Command {
 	cfg := new(config)
 	return &cli.Command{
@@ -84,6 +91,7 @@ func Command(ac chan FibServer) *cli.Command {
 	}
 }
 
+// MakeFibonacciRoute provides http methods for interacting the the fibonacci functionality.
 func MakeFibonacciRoute(store store.KV) http.Handler {
 	router := chi.NewRouter()
 	router.Route("/fib/", func(r chi.Router) {

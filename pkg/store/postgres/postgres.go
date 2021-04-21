@@ -11,12 +11,16 @@ type Client struct {
 	*sql.Client
 }
 
+// Option is an abstraction for providing addition configuration
+// to the database connection.
 type Option interface {
 	Apply(*gosql.DB)
 }
 
+// OptionFunc is the concrete type to implement the Option interface
 type OptionFunc func(*gosql.DB)
 
+// Apply satisfies the Option interface
 func (fn OptionFunc) Apply(db *gosql.DB) {
 	fn(db)
 }
@@ -29,6 +33,9 @@ func WithMaxOpenConns(n int) Option {
 	})
 }
 
+// NewClient creates a new PostgreSQL client.
+//
+// Close() method must be called on the client when you're done working with it.
 func NewClient(addr string, opts ...Option) (Client, error) {
 	pqURL, err := pq.ParseURL(addr)
 	if err != nil {

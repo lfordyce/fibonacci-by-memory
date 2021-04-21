@@ -12,20 +12,26 @@ import (
 	"time"
 )
 
+
+// LoggerOption is an abstraction for providing additional logging configuration options.
 type LoggerOption interface {
 	Apply(*Logger)
 }
 
+// LoggerOptionFunc concrete type to implement the LoggerOption interface.
 type LoggerOptionFunc func(*Logger)
 
+// Apply method satisfies the LoggerOption interface
 func (fn LoggerOptionFunc) Apply(logger *Logger) {
 	fn(logger)
 }
 
+// Logger is a convince wrapper around the zerolog implementation.
 type Logger struct {
 	*zerolog.Logger
 }
 
+// WithApp option to include app logging functionality
 func WithApp() LoggerOption {
 	return LoggerOptionFunc(func(l *Logger) {
 		al := appLogger{
@@ -50,12 +56,14 @@ func NewLogger(opts ...LoggerOption) Logger {
 	return l
 }
 
+// Log returns a zerolog.Event reference
 func (l Logger) Log(attributeID string) *zerolog.Event {
 	return l.Logger.Log().
 		Timestamp().
 		Str("id", attributeID)
 }
 
+// Writer returns an io.Writer instance
 func (l Logger) Writer(attributeID string) io.Writer {
 	var b bytes.Buffer
 	scanner := bufio.NewScanner(&b)
@@ -70,6 +78,7 @@ func (l Logger) Writer(attributeID string) io.Writer {
 	return &b
 }
 
+// StandardLog returns the standard library log Logger
 func (l Logger) StandardLog(attributeID string) *log.Logger {
 	return log.New(l.Writer(attributeID), "", 0)
 }
