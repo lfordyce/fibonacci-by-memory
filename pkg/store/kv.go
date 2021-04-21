@@ -1,11 +1,12 @@
 package store
 
+import (
+	"math/big"
+)
+
 type KV interface {
-	Set(k int64, v interface{}) error
-	Get(k int64, v interface{}) (found bool, err error)
-	Delete(k int64) error
+	Fibonacci(int) (*big.Int, error)
+	Records(int) (int64, error)
+	Truncate() (int64, error)
 	Close() error
 }
-
-
-

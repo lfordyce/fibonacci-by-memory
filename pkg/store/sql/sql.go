@@ -8,10 +8,10 @@ import (
 )
 
 type Client struct {
-	C          *sql.DB
-	UpsertStmt *sql.Stmt
-	GetStmt    *sql.Stmt
-	DeleteStmt *sql.Stmt
+	C             *sql.DB
+	FibonacciStmt *sql.Stmt
+	TruncateStmt  *sql.Stmt
+	CountStmt     *sql.Stmt
 }
 
 type BigInt struct {
@@ -36,31 +36,30 @@ func (b *BigInt) Scan(value interface{}) error {
 	return fmt.Errorf("could not scan type %T into BigInt", value)
 }
 
-func (c Client) Set(k int64, v interface{}) error {
-	_, err := c.UpsertStmt.Exec(k, v)
+func (c Client) Records(n int) (int64, error) {
+	var resultSet int64
+	if err := c.CountStmt.QueryRow(n).Scan(&resultSet); err != nil {
+		return 0, err
+	}
+	return resultSet, nil
+}
+
+func (c Client) Truncate() (int64, error) {
+	result, err := c.TruncateStmt.Exec()
 	if err != nil {
-		return err
+		return 0, err
 	}
-	return err
-}
-
-func (c Client) Get(k int64, v interface{}) (found bool, err error) {
-	// TODO: Consider using RawBytes.
-	dataPtr := new([]byte)
-	if err := c.GetStmt.QueryRow(k).Scan(dataPtr); err != nil {
-		return false, err
-	}
-	// TODO
-	return true, nil
-}
-
-func (c Client) Delete(k int64) error {
-	if _, err := c.DeleteStmt.Exec(k); err != nil {
-		return err
-	}
-	return nil
+	return result.RowsAffected()
 }
 
 func (c Client) Close() error {
 	return c.C.Close()
+}
+
+func (c Client) Fibonacci(n int) (*big.Int, error) {
+	var bigint BigInt
+	if err := c.FibonacciStmt.QueryRow(n).Scan(&bigint); err != nil {
+		return nil, err
+	}
+	return &bigint.Int, nil
 }

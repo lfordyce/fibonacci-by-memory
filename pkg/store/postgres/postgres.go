@@ -2,53 +2,70 @@ package postgres
 
 import (
 	gosql "database/sql"
-	"github.com/lfordyce/fibonacci-by-memory/pkg/store"
 	"github.com/lfordyce/fibonacci-by-memory/pkg/store/sql"
 	"github.com/lib/pq"
 )
 
 // Client is a KV implementation for PostgreSQL.
-type pqClient struct {
+type Client struct {
 	*sql.Client
 }
 
-func NewClient(addr string) (store.KV, error) {
+type Option interface {
+	Apply(*gosql.DB)
+}
+
+type OptionFunc func(*gosql.DB)
+
+func (fn OptionFunc) Apply(db *gosql.DB) {
+	fn(db)
+}
+
+// WithMaxOpenConns limit number of concurrent connections. Typical max connections on a PostgreSQL server is 100.
+// This prevents "Error 1040: Too many connections", which otherwise occurs for example with 500 concurrent goroutines.
+func WithMaxOpenConns(n int) Option {
+	return OptionFunc(func(db *gosql.DB) {
+		db.SetMaxOpenConns(n)
+	})
+}
+
+func NewClient(addr string, opts ...Option) (Client, error) {
 	pqURL, err := pq.ParseURL(addr)
 	if err != nil {
-		return pqClient{}, err
+		return Client{}, err
 	}
 	conn, err := gosql.Open("postgres", pqURL)
 	if err != nil {
-		return pqClient{}, err
+		return Client{}, err
 	}
 	if err := conn.Ping(); err != nil {
-		return pqClient{}, err
+		return Client{}, err
 	}
 
-	// Limit number of concurrent connections. Typical max connections on a PostgreSQL server is 100.
-	// This prevents "Error 1040: Too many connections", which otherwise occurs for example with 500 concurrent goroutines.
-	conn.SetMaxOpenConns(10)
-
-	upsertStmt, err := conn.Prepare("INSERT INTO fib_cache (ordinal, fibonacci) VALUES ($1, $2) ON CONFLICT (ordinal) DO UPDATE SET fibonacci = $2")
-	if err != nil {
-		return pqClient{}, err
+	for _, opt := range opts {
+		opt.Apply(conn)
 	}
 
-	getStmt, err := conn.Prepare("SELECT v FROM fib_cache  WHERE ordinal = $1")
+	fibonacciStmt, err := conn.Prepare("SELECT fibonacci_cached($1)")
 	if err != nil {
-		return pqClient{}, err
+		return Client{}, nil
 	}
 
-	deleteStmt, err := conn.Prepare("DELETE FROM fib_cache WHERE ordinal = $1")
+	truncateStmt, err := conn.Prepare("TRUNCATE fib_store")
 	if err != nil {
-		return pqClient{}, err
+		return Client{}, err
+	}
+
+	resultCountStmt, err := conn.Prepare("SELECT count(fibonacci) FROM fib_store WHERE fibonacci < $1")
+	if err != nil {
+		return Client{}, err
 	}
 
 	c := sql.Client{
-		C:          conn,
-		UpsertStmt: upsertStmt,
-		GetStmt:    getStmt,
-		DeleteStmt: deleteStmt,
+		C:             conn,
+		FibonacciStmt: fibonacciStmt,
+		TruncateStmt:  truncateStmt,
+		CountStmt:     resultCountStmt,
 	}
-	return pqClient{&c}, nil
+	return Client{&c}, nil
 }

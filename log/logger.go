@@ -50,26 +50,26 @@ func NewLogger(opts ...LoggerOption) Logger {
 	return l
 }
 
-func (l Logger) Log(iom string) *zerolog.Event {
+func (l Logger) Log(attributeID string) *zerolog.Event {
 	return l.Logger.Log().
 		Timestamp().
-		Str("id", iom)
+		Str("id", attributeID)
 }
 
-func (l Logger) Writer(iom string) io.Writer {
+func (l Logger) Writer(attributeID string) io.Writer {
 	var b bytes.Buffer
 	scanner := bufio.NewScanner(&b)
 
 	go func(scanner *bufio.Scanner) {
 		for scanner.Scan() {
 			line := scanner.Text()
-			l.Log(iom).Msg(line)
+			l.Log(attributeID).Msg(line)
 		}
 	}(scanner)
 
 	return &b
 }
 
-func (l Logger) StandardLog(iom string) *log.Logger {
-	return log.New(l.Writer(iom), "", 0)
+func (l Logger) StandardLog(attributeID string) *log.Logger {
+	return log.New(l.Writer(attributeID), "", 0)
 }

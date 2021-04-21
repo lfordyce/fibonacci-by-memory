@@ -4,7 +4,7 @@ services:
   app:
     image: fib_memo_api:latest
     environment:
-      - DATABASE_URL=postgresql://postgres:changeme@psql_utxo:5432/postgres
+      - DATABASE_URL=postgresql://postgres:changeme@psql_kv:5432/postgres?sslmode=disable
       - PORT=8000
     ports:
       - 8000:8000
