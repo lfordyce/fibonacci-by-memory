@@ -1,47 +1,50 @@
 package store
 
 import (
-	"database/sql"
 	"fmt"
 	"github.com/lfordyce/fibonacci-by-memory/pkg/store/postgres"
-	"github.com/lib/pq"
+	"github.com/ory/dockertest/v3"
 	"testing"
 )
 
 func TestFibonacciIntegration(t *testing.T) {
-	connectionURL := "postgresql://postgres:changeme@localhost:5432/postgres?sslmode=disable"
-	if !checkConnection(connectionURL, t) {
-		t.Skip("No connection to PostgreSQL could be established. Probably not running in a proper test environment.")
-	}
-
-	client, err := postgres.NewClient(connectionURL)
+	var client postgres.Client
+	pool, err := dockertest.NewPool("")
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer client.Close()
-
-	fibonacci, err := client.Fibonacci(10)
+	resource, err := pool.BuildAndRun("fibonacci-image", "../../psql/Dockerfile", []string{
+		"POSTGRES_PASSWORD=changeme", "POSTGRES_DB=postgres",
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	fmt.Println(fibonacci)
-}
 
-func checkConnection(connectionURL string, t *testing.T) bool {
-	url, err := pq.ParseURL(connectionURL)
+	if err = pool.Retry(func() error {
+		var err error
+		addr := fmt.Sprintf("postgres://postgres:changeme@localhost:%s/%s?sslmode=disable", resource.GetPort("5432/tcp"), "postgres")
+		client, err = postgres.NewClient(addr)
+		if err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	result, err := client.Fibonacci(11)
 	if err != nil {
-		t.Logf("An error occurred parsing the connection URL: %v\n", err)
-		return false
+		t.Fatal(err)
 	}
-	db, err := sql.Open("postgres", url)
-	if err != nil {
-		t.Logf("An error occurred during testing the connection to the server: %v\n", err)
-		return false
+	if actual := result.Int64(); actual != 89 {
+		t.Errorf("expected the (%d)th value in the fibonacci sequence to be: %d, actual %d", 11, 89, actual)
 	}
-	defer db.Close()
-	if err := db.Ping(); err != nil {
-		t.Logf("An error occurred during testing the connection to the server: %v\n", err)
-		return false
+
+	if err := client.Close(); err != nil {
+		t.Errorf("failed to close connection to DB: %v", err)
 	}
-	return true
+	// When you're done, kill and remove the container
+	if err = pool.Purge(resource); err != nil {
+		t.Fatal(err)
+	}
 }
