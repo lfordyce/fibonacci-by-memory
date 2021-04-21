@@ -14,10 +14,10 @@ var (
 	// Version contains the current version.
 	Version = "dev"
 	// BuildDate contains a string with the build date.
-	//BuildDate = "unknown"
+	BuildDate = "unknown"
 )
 
-func main () {
+func main() {
 	ac := make(chan cmd.FibServer, 1)
 
 	app := cli.NewApp()

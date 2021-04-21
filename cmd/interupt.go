@@ -6,7 +6,7 @@ import (
 	"syscall"
 )
 
-// RegisterInterrupt listens for CTRL-C and notifies the main application over {progChan}
+// RegisterInterrupt listens for CTRL-C and notifies the main application over {intrChan}
 func RegisterInterrupt() <-chan struct{} {
 	intrChan := make(chan os.Signal, 1)
 	done := make(chan struct{}, 1)

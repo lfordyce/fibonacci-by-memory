@@ -3,9 +3,7 @@ version: '3.7'
 services:
   app:
     image: fib_memo_api:latest
-    environment:
-      - DATABASE_URL=postgresql://postgres:changeme@psql_kv:5432/postgres?sslmode=disable
-      - PORT=8000
+    command: server --postgres postgresql://postgres:changeme@psql_kv:5432/postgres?sslmode=disable
     ports:
       - 8000:8000
     networks:

@@ -8,7 +8,6 @@ import (
 	"github.com/lfordyce/fibonacci-by-memory/pkg/store"
 	"github.com/lfordyce/fibonacci-by-memory/pkg/store/postgres"
 	"github.com/urfave/cli/v2"
-	"math/big"
 	"net/http"
 	"strconv"
 	"strings"
@@ -72,6 +71,7 @@ func Command(ac chan FibServer) *cli.Command {
 			l := log.NewLogger(log.WithApp())
 
 			mux := chi.NewRouter()
+			mux.Use(l.LoggerMiddleware())
 			mux.Route("/v1", func(r chi.Router) {
 				r.Mount("/api", MakeFibonacciRoute(dbClient))
 			})
@@ -153,153 +153,9 @@ func logRoutes(mux *chi.Mux, l log.Logger) {
 
 		l.Log("route.walk").Str("method", method).
 			Str("route", route).Msg("")
-		//l.Info().
-		//	Str("method", method).
-		//	Str("route", route)
 
 		return nil
 	}); err != nil {
 		l.Err(err).Msg("Failed to walk routes")
 	}
-}
-
-func newMemoizedFib() func(int) int {
-	cache := make(map[int]int)
-
-	var fn func(int) int
-
-	fn = func(n int) int {
-		if n == 1 || n == 2 {
-			return 1
-		}
-		if _, ok := cache[n]; !ok {
-			cache[n] = fn(n-1) + fn(n-2)
-		}
-		return cache[n]
-	}
-	return fn
-}
-
-// kv store.KV
-
-//func newMemoizedFib2(kv store.KV) func(int) *big.Int {
-//	cache := make(map[int]int)
-//
-//	var fn func(int) *big.Int
-//
-//	fn = func(n int) *big.Int {
-//		if n == 1 || n == 2 {
-//			return 1
-//		}
-//		if _, ok := cache[n]; !ok {
-//			cache[n] = fn(n-1) + fn(n-2)
-//		}
-//		return cache[n]
-//	}
-//	return fn
-//}
-
-func fib(n int64) int64 {
-	if n == 1 || n == 2 {
-		return 1
-	}
-	return fib(n-2) + fib(n-1)
-}
-
-func memoize(targetFunc func(int64) int64, cache map[int64]int64) func(int64) int64 {
-	middleLayer := func(n int64) int64 {
-		if cache[n] != 0 {
-			return cache[n]
-		}
-		return targetFunc(n)
-	}
-	return func(n int64) int64 {
-		for cache[n] == 0 {
-			cache[n] = middleLayer(n-1) + middleLayer(n-2)
-		}
-		return cache[n]
-	}
-}
-
-//
-//func bigMemo(targetFunc func(uint64) *big.Int, kv store.KV) func(uint64) *big.Int {
-//	middleLayer := func(n uint64) *big.Int {
-//		var figExists big.Int
-//		found, err := kv.Get(n, &figExists)
-//		if err != nil {
-//			// TODO
-//			panic(err)
-//		}
-//		if found {
-//			return &figExists
-//		}
-//		return targetFunc(n)
-//	}
-//	return func(n uint64) *big.Int {
-//
-//
-//	}
-//}
-
-func bigFib2(n uint64) *big.Int {
-	if n == 1 || n == 2 {
-		return big.NewInt(1)
-	}
-	a := bigFib2(n - 2)
-	b := bigFib2(n - 1)
-	value := big.NewInt(0)
-	value.Add(value, a)
-	value.Add(value, b)
-
-	return value
-}
-
-func bigFib(n int64) *big.Int {
-	switch n {
-	case 0:
-		return big.NewInt(0)
-	case 1:
-		return big.NewInt(1)
-	case 2:
-		return big.NewInt(1)
-	default:
-		a := bigFib(n - 2)
-		b := bigFib(n - 1)
-		value := big.NewInt(0)
-		value.Add(value, a)
-		value.Add(value, b)
-
-		return value
-	}
-}
-
-func fibOther(n int) *big.Int {
-	fn := make(map[int]*big.Int)
-
-	for i := 0; i <= n; i++ {
-		var f = big.NewInt(0)
-		if i <= 2 {
-			f.SetUint64(1)
-		} else {
-			f = f.Add(fn[i-1], fn[i-2])
-		}
-		fn[i] = f
-	}
-	return fn[n]
-}
-
-// FibonacciBig calculates Fibonacci number using bit.Int
-func FibonacciBig(n uint) *big.Int {
-	if n <= 1 {
-		return big.NewInt(int64(n))
-	}
-
-	var n2, n1 = big.NewInt(0), big.NewInt(1)
-
-	for i := uint(1); i < n; i++ {
-		n2.Add(n2, n1)
-		n1, n2 = n2, n1
-	}
-
-	return n1
 }
