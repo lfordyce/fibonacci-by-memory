@@ -10,9 +10,9 @@ services:
       - fibonacci_network
     depends_on:
       - psql_kv
+    restart: on-failure
 
   psql_kv:
-    container_name: psql_kv
     build:
       context: psql
       dockerfile: Dockerfile
