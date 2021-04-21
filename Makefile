@@ -70,3 +70,7 @@ docker-pull: ; $(info $(M) pulling latest docker images) @ ## Pull latest Docker
 docker:docker-pull ; $(info $(M) building docker image) @ ## Build docker image
 	$(eval BUILDER_IMAGE=$(shell docker inspect --format='{{index .RepoDigests 0}}' golang:1.16-alpine))
 	@docker build -f Dockerfile --build-arg "BUILDER_IMAGE=$(BUILDER_IMAGE)" -t fib_memo_api .
+
+.PHONY: compose
+compose:docker ; $(info $(M) building images and running docker-compose up...) @ ## Run docker-compose
+	$Q docker-compose -f docker-compose.yaml up
